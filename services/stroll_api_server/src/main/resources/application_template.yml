@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: stroll-api
+  datasource:
+    url: jdbc:mysql://${DB_HOST:~~~}:${DB_PORT:~~~}/stroll?serverTimezone=Asia/Seoul
+    username: ${DB_USER:~~~}
+    password: ${DB_PASS:~~~}
+
+mybatis:
+  config-location: classpath:mybatis/mybatis-config.xml
+
+jwt:
+  secret: ${JWT_SECRET_KEY:~~~}
+  expiration: ${JWT_EXPIRATION:~~~}
+
+cors:
+  frontend-url: ${FRONTEND_URL:~~~}
+
+aws:
+  s3-access-key-id: ${AWS_S3_ACCESS_KEY_ID:~~~}
+  s3-secret-access-key: ${AWS_S3_SECRET_ACCESS_KEY:~~~}
+  s3-bucket: ${AWS_S3_BUCKET:~~~}
+  s3-region: ${AWS_S3_REGION:~~~}
+
+api-key:
+  kakao-api-key: ${KAKAO_API_KEY:~~~}

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="image">
+	<insert id = "insertImg" parameterType = "image">
+		INSERT INTO IMAGE(PLACE_NO, IMAGE_PATH) VALUES(#{placeNo}, #{imagePath})
+	</insert>
+	<select id = "selectImgsByPlaceNo" parameterType = "int" resultType = "image">
+		SELECT IMAGE_NO AS no, PLACE_NO AS placeNo, IMAGE_PATH AS imagePath  FROM IMAGE WHERE PLACE_NO = #{placeNo}  
+	</select>
+	<!-- image_no로 이미지 하나씩 삭제 -->
+	<delete id = "deleteImg" parameterType = "int">
+		DELETE FROM IMAGE WHERE IMAGE_NO = #{no}
+	</delete>
+</mapper>

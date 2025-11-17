@@ -1,0 +1,124 @@
+name: api-server-aws
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  SERVICE_PATH: services/stroll_api_server
+  #ECR EC2
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  EC2_HOST: ${{ secrets.EC2_HOST }}
+  EC2_USER: ${{ secrets.EC2_USER }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  # EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+
+  REPO_NAME: stroll_monorepo
+
+  ENV_NAME: .env.api_server
+  EC2_DEPLOY_PATH: /home/ec2-user/stroll
+  COMPOSE_NAME: compose.api_server.deploy.yml
+jobs:
+  make_application_yml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create application.yml
+        run: |
+          cp ${{ env.SERVICE_PATH }}/src/main/resources/application_template.yml ${{ env.SERVICE_PATH }}/src/main/resources/application.yml
+
+  build:
+    runs-on: ubuntu-latest
+    needs: make_application_yml
+    defaults:
+      run:
+        working-directory: ${{ env.SERVICE_PATH }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
+      - name: grant_execute_permission_for_gradlew
+        run: chmod +x ./gradlew
+      - id: detect-jar
+        run: |
+          ./gradlew clean build -x test
+          jar_path=$(ls build/libs/*.jar | head -n 1)
+          [ -n "$jar_path" ] || exit 1
+          jar_name=$(basename "$jar_path")
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - id: build_docker_image
+        run: |
+          IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/stroll/api-server:${{ github.sha }}"
+          docker build -t "$IMAGE_URI" -f ./dockerfile .
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+      - id: push-image
+        run: |
+          IMAGE_URI="${{ env.IMAGE_URI }}"
+          docker push "${IMAGE_URI}"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: |
+          mkdir -p ~/.ssh
+          printf "%s" "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ env.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - uses: actions/checkout@v4
+
+      - name: make_env_file
+        env:
+          LOCAL_ENV_PATH: ${{ runner.temp }}/${{ env.ENV_NAME }}
+        run: |
+          echo -e "DB_HOST: ${{ secrets.RDS_HOST }}\nDB_PORT: ${{ secrets.RDS_PORT }}\nDB_USER: ${{ secrets.RDS_USER }}\nDB_PASS: ${{ secrets.RDS_PASS }}\nJWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}\nJWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}\nFRONTEND_URL: ${{ secrets.FRONTEND_URL }}\nAWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}\nAWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}\nAWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}\nAWS_S3_REGION: ${{ secrets.AWS_S3_REGION }}\nKAKAO_API_KEY: ${{ secrets.KAKAO_API_KEY }}" > "$LOCAL_ENV_PATH"
+          ssh -i ~/.ssh/deploy_key "${{ env.EC2_USER }}"@"${{ env.EC2_HOST }}" <<EOSSH
+          mkdir -p ${{env.EC2_DEPLOY_PATH}}
+          EOSSH
+          scp -i ~/.ssh/deploy_key "$LOCAL_ENV_PATH" "${{ env.EC2_USER }}"@"${{ env.EC2_HOST }}":${{env.EC2_DEPLOY_PATH}}/${{env.ENV_NAME}}
+          rm -f "$LOCAL_ENV_PATH"
+
+      - name: copy_compose_file
+        run: |
+          scp -i ~/.ssh/deploy_key "${{env.COMPOSE_NAME}}" "${{ env.EC2_USER }}"@"${{ env.EC2_HOST }}":${{env.EC2_DEPLOY_PATH}}/${{env.COMPOSE_NAME}}
+
+      - name: deploy_to_ec2
+        env:
+          IMAGE_URI: ${{ env.ECR_REPOSITORY }}/api-server:${{ github.sha }}
+        run: |
+          ecr_registry=${{env.ECR_REPOSITORY}}/api-server
+          ecr_password=$(aws ecr get-login-password --region "${{ env.AWS_REGION }}")
+          ssh -i ~/.ssh/deploy_key "${{ env.EC2_USER }}"@"${{ env.EC2_HOST }}" <<EOSSH
+          sudo systemctl start docker
+          sudo docker login -u AWS -p "${ecr_password}" "${ecr_registry}"
+          sudo docker pull "${IMAGE_URI}"
+          sudo docker tag "${IMAGE_URI}" "stroll-api-server"
+          sudo docker stop api-server || true
+          sudo docker rm api-server || true
+          cd "${{env.EC2_DEPLOY_PATH}}"
+          sudo docker-compose -f "${{env.COMPOSE_NAME}}" --env-file "${{env.ENV_NAME}}" up -d
+          EOSSH

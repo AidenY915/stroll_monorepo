@@ -1,0 +1,53 @@
+# Build
+/build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle/
+out/
+bin/
+target/
+
+# IDE
+*.iml
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/logs/
+/*.log.*
+
+# Spring Boot 실행 파일
+*.jar
+*.war
+*.ear
+
+# Application config (보안 파일)
+/src/main/resources/application.properties
+/src/main/resources/application.yml
+/src/test/resources/application.properties
+/src/test/resources/application.yml
+
+# 환경별 설정 파일도 제외
+/src/main/resources/*-application.properties
+/src/main/resources/*-application.yml
+
+# config 폴더 안 전체 제외
+/src/main/resources/config/*
+
+# 환경 변수 파일
+.env
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+.gradle-cache/
+
+# 기타 캐시
+*.swp
+*.swo

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="place">
+
+	<!-- 장소 리스트 검색 -->
+	<!-- 키워드로만 검색 -->
+	<select id="selectPlaces" parameterType="place" resultType="place">
+		SELECT place.place_no AS no, title, gu_address, after_gu_address, detail_address, x, y, star, category, pet_type
+		FROM place 
+		LEFT OUTER JOIN (
+			SELECT AVG(star) AS star, place_no 
+			FROM reply 
+			GROUP BY place_no
+		) AS r ON place.place_no = r.place_no
+		WHERE (title REGEXP #{title}
+			OR gu_address REGEXP #{guAddress}
+			OR after_gu_address REGEXP #{afterGuAddress}
+			OR detail_address REGEXP #{detailAddress})
+		<if test='!category.equals("")'> 
+			AND category = #{category}
+		</if>
+        <if test='petType != null'>
+            AND (pet_type LIKE CONCAT('%', #{petType}, '%') OR pet_type IS NULL or pet_type = '기타')
+        </if>
+	</select>
+
+	<!-- 주소 기반 검색 -->
+	<!-- 내가 속한 구에 있는 장소들 중에 검색 --> 
+	<!-- FROM 절의 서브쿼리는 반드시 aliias 필요. 집계 함수를 외부 쿼리 문에서 다시 읽으려면, 반드시 alias 필요 -->
+	<select id="selectPlacesByGuAddress" parameterType="place" resultType="place">
+		SELECT no, title, gu_address, after_gu_address, detail_address, x, y, star, category, pet_type
+		FROM
+		(	
+			SELECT p.place_no AS no, title, gu_address, after_gu_address, detail_address, x, y, star, category, pet_type
+			FROM 
+			(SELECT * FROM place WHERE gu_address REGEXP #{guAddress}) AS p 
+			LEFT OUTER JOIN 
+			(SELECT place_no, AVG(star) AS star FROM reply GROUP BY place_no) AS r 
+			ON p.place_no = r.place_no
+		) AS outer_p
+		WHERE (title REGEXP #{title}
+			OR outer_p.after_gu_address REGEXP #{afterGuAddress}
+			OR outer_p.detail_address REGEXP #{detailAddress})
+		<if test='!category.equals("")'> 
+			AND outer_p.category = #{category}
+		</if>
+        <if test='petType != null'>
+            AND (outer_p.pet_type LIKE CONCAT('%', #{petType} '%') OR outer_p.pet_type IS NULL or outer_p.pet_type = '기타')
+        </if>
+	</select>
+
+	<!-- 단일 장소 조회 -->
+	<select id="selectPlace" parameterType="place" resultType="place">
+		SELECT place.place_no AS no, title, category, gu_address, after_gu_address, detail_address, x, y, star, place.user_id, content, written_date, pet_type
+		FROM place 
+		LEFT OUTER JOIN (
+			SELECT AVG(star) AS star, place_no 
+			FROM reply 
+			GROUP BY place_no
+		) AS r ON place.place_no = r.place_no
+		WHERE place.place_no = #{no}
+	</select>
+
+	<!-- 장소 등록 -->
+	<insert id="insertPlace" parameterType="place" useGeneratedKeys="true" keyProperty="no"> <!--keyProperty는 DB 컬럼명이 아니라 Java 필드명 기준-->
+		INSERT INTO place (
+			title, content, category, gu_address, after_gu_address, detail_address, x, y, user_id, pet_type
+		) VALUES (
+			#{title}, #{content}, #{category}, #{guAddress}, #{afterGuAddress}, #{detailAddress}, #{x}, #{y}, #{userId}, pet_type
+		)
+	</insert>
+
+	<!-- 장소 삭제 -->
+	<delete id="deletePlace" parameterType="place">
+		DELETE FROM place WHERE place_no = #{no}
+	</delete>
+
+</mapper>

@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=MYSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+  sql:
+    init:
+      mode: never
+
+jwt:
+  secret: test-secret
+  expiration: 3600
+
+cors:
+  frontend-url: http://localhost:3000
+
+aws:
+  s3-access-key-id: test-access-key
+  s3-secret-access-key: test-secret-key
+  s3-bucket: test-bucket
+  s3-region: ap-northeast-2
+
+api-key:
+  kakao-api-key: test-kakao-key

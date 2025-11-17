@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  stroll-api:
+    image: stroll-api-server
+    container_name: stroll-api-server
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      FRONTEND_URL: ${FRONTEND_URL}
+
+    networks:
+      - stroll-network
+
+networks:
+  stroll-network:
+    name: stroll-network
+    driver: bridge
+    external: true

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user">
+
+	<!-- 로그인 시 비밀번호 확인 -->
+	<select id="checkPassword" resultType="user">
+		SELECT id 
+		FROM user 
+		WHERE id = #{id} AND password = #{password}
+	</select>
+
+	<!-- ID로 사용자 조회 -->
+	<select id="selectUser" parameterType="user" resultType="user">
+		SELECT * 
+		FROM user 
+		WHERE id = #{id}
+	</select>
+
+	<!-- 닉네임으로 사용자 조회 -->
+	<select id="selectUserByNickname" parameterType="user" resultType="user">
+		SELECT * 
+		FROM user 
+		WHERE nickname = #{nickname}
+	</select>
+
+	<!-- 회원가입 -->
+	<insert id="registerUser" parameterType="user">
+		INSERT INTO user (id, password, nickname, email, animalType)
+		VALUES (#{id}, #{password}, #{nickname}, #{email}, animalType)
+	</insert>
+
+	<!-- 찜 목록 추가 -->
+	<insert id="insertToWishList" parameterType="wish">
+		INSERT INTO wish (wish_no, user_id, place_no)
+		VALUES (NULL, #{userId}, #{placeNo})
+	</insert>
+
+	<!-- 찜 목록에서 삭제 -->
+	<delete id="deleteFromWishList" parameterType="wish">
+		DELETE FROM wish 
+		WHERE user_id = #{userId} AND place_no = #{placeNo}
+	</delete>
+
+	<!-- 단일 찜 조회 -->
+	<select id="selectWish" resultType="wish">
+		SELECT * 
+		FROM wish 
+		WHERE user_id = #{userId} AND place_no = #{placeNo}
+	</select>
+
+	<!-- 찜한 장소 전체 조회 -->
+	<select id="selectWishedPlaces" parameterType="wish" resultType="place">
+		SELECT 
+			place.place_no AS no,
+			title,
+			content,
+			category,
+			written_date AS writtenDate,
+			gu_address AS guAddress,
+			detail_address AS detailAddress,
+			x,
+			y,
+			place.user_id AS userId
+		FROM wish 
+		INNER JOIN place ON wish.place_no = place.place_no
+		WHERE wish.user_id = #{userId}
+	</select>
+
+	<!-- 사용자가 작성한 장소들 -->
+	<select id="selectUserPlaces" parameterType="user" resultType="place">
+        SELECT place.place_no AS no, title, gu_address, after_gu_address, detail_address, x, y, star, category
+        FROM place
+        LEFT OUTER JOIN (
+        SELECT AVG(star) AS star, place_no
+        FROM reply
+        GROUP BY place_no
+        ) AS r ON place.place_no = r.place_no
+		WHERE place.user_id = #{id}
+	</select>
+
+	<!-- 사용자가 작성한 리뷰들 -->
+	<select id="selectUserReviews" parameterType="user" resultType="reply">
+		SELECT 
+			reply.reply_no AS no,
+			reply.user_id AS userId,
+			place_no AS placeNo,
+			reply.content AS content,
+			star,
+			reply.written_date AS writtenDate,
+			place.title AS placeTitle
+		FROM reply 
+		INNER JOIN place ON reply.place_no = place.place_no  
+		WHERE reply.user_id = #{id}
+	</select>
+
+	<!-- 회원 탈퇴 -->
+	<delete id="deleteUser" parameterType="user">
+		DELETE FROM user 
+		WHERE id = #{id} AND password = #{password}
+	</delete>
+
+    <select id="selectPetType" resultType="user">
+        SELECT pet_type FROM user
+        WHERE id = #{id}
+    </select>
+
+</mapper>

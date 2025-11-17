@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<setting name="logImpl" value="STDOUT_LOGGING" />
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+	</settings>
+
+	<typeAliases>
+		<typeAlias alias="place" type="com.stroll.www.vo.PlaceVO" />
+		<typeAlias alias="user" type="com.stroll.www.vo.UserVO" />
+		<typeAlias alias="reply" type="com.stroll.www.vo.ReplyVO" />
+		<typeAlias alias="wish" type="com.stroll.www.vo.WishVO" />
+		<typeAlias alias="image" type="com.stroll.www.vo.ImageVO" />
+	</typeAliases>
+
+	<mappers>
+		<mapper resource="mybatis/mappings/place-mapping.xml" />
+		<mapper resource="mybatis/mappings/user-mapping.xml" />
+		<mapper resource="mybatis/mappings/reply-mapping.xml" />
+		<mapper resource="mybatis/mappings/image-mapping.xml" />
+	</mappers>
+</configuration>

@@ -1,0 +1,60 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.5'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.stroll'
+version = '0.0.1-SNAPSHOT'
+description = 'Stroll for Spring Boot'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+    // --- Spring Boot 기본 ---
+    implementation 'org.springframework.boot:spring-boot-starter-web'   // (Jackson 포함)
+//    implementation 'org.springframework.boot:spring-boot-starter-jdbc'  // (HikariCP)
+    implementation 'org.springframework.boot:spring-boot-starter-aop'   // (AspectJ 대체)
+    implementation 'org.aspectj:aspectjweaver:1.9.22.1'
+    
+    //MySQL
+    runtimeOnly 'com.mysql:mysql-connector-j:8.4.0'
+    // --- MyBatis ---
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
+
+    // --- DB Driver ---
+    runtimeOnly 'com.mysql:mysql-connector-j:8.4.0' // Boot 3 권장 좌표 (mysql-connector-j)
+
+    // --- AWS SDK v2 ---
+    implementation 'software.amazon.awssdk:s3:2.31.8'
+
+    // --- Test ---
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // lombok 1.18.34
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
+    // jjwt
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+    runtimeOnly  'io.jsonwebtoken:jjwt-impl:0.12.5'
+    runtimeOnly  'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
+    // Apache Commons Codec 16진수 -> 바이트 코드를 위함
+    implementation 'commons-codec:commons-codec:1.16.0'
+
+    testImplementation 'com.h2database:h2'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
